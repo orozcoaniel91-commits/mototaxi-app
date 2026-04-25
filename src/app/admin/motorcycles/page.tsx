@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Motorcycle, MotorcycleType, Driver } from '@/lib/supabase/types'
+import { Motorcycle, MotorcycleType } from '@/lib/supabase/types'
 
 const statusColors: Record<string, string> = {
   active: 'bg-green-100 text-green-700',
@@ -21,7 +21,7 @@ const statusLabels: Record<string, string> = {
 export default function MotorcyclesPage() {
   const [motorcycles, setMotorcycles] = useState<Motorcycle[]>([])
   const [types, setTypes] = useState<MotorcycleType[]>([])
-  const [drivers, setDrivers] = useState<Driver[]>([])
+  const [drivers, setDrivers] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ plate: '', brand: '', model: '', year: '', motorcycle_type_id: '', driver_id: '' })
