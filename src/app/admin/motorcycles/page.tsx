@@ -109,14 +109,17 @@ function MotoEditModal({ moto, types, drivers, onSave, onClose }: {
       motorcycle_type_id: form.motorcycle_type_id ? parseInt(form.motorcycle_type_id) : null,
     }).eq('id', moto.id)
 
-    // Update driver assignment
+    // Deactivate current assignments for this motorcycle
     await supabase.from('driver_motorcycle_assignments').update({ is_active: false }).eq('motorcycle_id', moto.id)
     if (form.driver_id) {
-      await supabase.from('driver_motorcycle_assignments').upsert({
+      // Deactivate any other active moto the driver may have
+      await supabase.from('driver_motorcycle_assignments').update({ is_active: false }).eq('driver_id', form.driver_id)
+      // Insert fresh active assignment
+      await supabase.from('driver_motorcycle_assignments').insert({
         driver_id: form.driver_id,
         motorcycle_id: moto.id,
         is_active: true,
-      }, { onConflict: 'driver_id,motorcycle_id' })
+      })
     }
 
     setSaving(false)
