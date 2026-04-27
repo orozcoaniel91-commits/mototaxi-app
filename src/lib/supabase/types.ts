@@ -59,6 +59,7 @@ export interface ServiceRequest {
   fare: number | null
   requested_at: string
   accepted_at: string | null
+  started_at: string | null
   completed_at: string | null
   motorcycle_types?: MotorcycleType
   drivers?: Driver

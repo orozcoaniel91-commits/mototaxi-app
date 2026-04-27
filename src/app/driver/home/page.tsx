@@ -129,7 +129,10 @@ export default function DriverHome() {
 
   async function startService() {
     if (!activeService) return
-    await supabase.from('service_requests').update({ status: 'in_progress' }).eq('id', activeService.id)
+    await supabase.from('service_requests').update({
+      status: 'in_progress',
+      started_at: new Date().toISOString(),
+    }).eq('id', activeService.id)
     setActiveService({ ...activeService, status: 'in_progress' })
   }
 

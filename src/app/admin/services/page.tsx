@@ -20,10 +20,154 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Cancelado',
 }
 
+function fmtTime(iso: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+function fmtDiff(from: string | null, to: string | null): string {
+  if (!from || !to) return '—'
+  const secs = Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 1000)
+  if (secs < 0) return '—'
+  const h = Math.floor(secs / 3600)
+  const m = Math.floor((secs % 3600) / 60)
+  const s = secs % 60
+  if (h > 0) return `${h}h ${m}m ${s}s`
+  if (m > 0) return `${m}m ${s}s`
+  return `${s}s`
+}
+
+function ServiceDetailModal({ service, onClose }: { service: ServiceRequest; onClose: () => void }) {
+  const steps = [
+    {
+      label: 'Solicitud recibida',
+      time: service.requested_at,
+      diff: null,
+      diffLabel: null,
+      color: 'bg-gray-400',
+    },
+    {
+      label: 'Conductor aceptó',
+      time: service.accepted_at,
+      diff: fmtDiff(service.requested_at, service.accepted_at),
+      diffLabel: 'Tiempo de espera hasta aceptación',
+      color: 'bg-blue-500',
+    },
+    {
+      label: 'Viaje iniciado',
+      time: service.started_at,
+      diff: fmtDiff(service.accepted_at, service.started_at),
+      diffLabel: 'Tiempo del conductor en llegar',
+      color: 'bg-orange-500',
+    },
+    {
+      label: 'Servicio completado',
+      time: service.completed_at,
+      diff: fmtDiff(service.started_at, service.completed_at),
+      diffLabel: 'Duración del viaje',
+      color: 'bg-green-500',
+    },
+  ]
+
+  const totalTime = fmtDiff(service.requested_at, service.completed_at)
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <div>
+            <h3 className="font-bold text-gray-800 text-lg">Detalles del servicio</h3>
+            <p className="text-xs text-gray-400">{service.customer_name} · {service.customer_phone}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+        </div>
+
+        <div className="px-6 py-4 space-y-4">
+          {/* Info básica */}
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-xs text-gray-400 mb-0.5">Recogida</p>
+              <p className="text-gray-800">{service.pickup_address ?? '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-0.5">Destino</p>
+              <p className="text-gray-800">{service.destination_address ?? '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-0.5">Conductor</p>
+              <p className="text-gray-800">{service.drivers?.name ?? '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-0.5">Estado</p>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[service.status]}`}>
+                {statusLabels[service.status]}
+              </span>
+            </div>
+          </div>
+
+          <hr />
+
+          {/* Timeline de tiempos */}
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Tiempos del servicio</p>
+            <div className="space-y-3">
+              {steps.map((step, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-3 h-3 rounded-full mt-0.5 ${step.time ? step.color : 'bg-gray-200'}`} />
+                    {i < steps.length - 1 && (
+                      <div className={`w-0.5 h-8 mt-1 ${step.time ? 'bg-gray-200' : 'bg-gray-100'}`} />
+                    )}
+                  </div>
+                  <div className="flex-1 pb-1">
+                    <div className="flex items-center justify-between">
+                      <p className={`text-sm font-medium ${step.time ? 'text-gray-800' : 'text-gray-300'}`}>
+                        {step.label}
+                      </p>
+                      <p className={`text-xs tabular-nums ${step.time ? 'text-gray-500' : 'text-gray-300'}`}>
+                        {fmtTime(step.time)}
+                      </p>
+                    </div>
+                    {step.diffLabel && step.diff !== '—' && (
+                      <p className="text-xs text-orange-600 font-medium mt-0.5">
+                        ⏱ {step.diffLabel}: <span className="font-bold">{step.diff}</span>
+                      </p>
+                    )}
+                    {step.diffLabel && step.diff === '—' && step.time === null && (
+                      <p className="text-xs text-gray-300 mt-0.5">Pendiente</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {service.completed_at && (
+            <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-600">Tiempo total del servicio</p>
+              <p className="text-sm font-bold text-gray-800">{totalTime}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 border-t">
+          <button
+            onClick={onClose}
+            className="w-full bg-gray-100 text-gray-700 py-2 rounded-xl text-sm font-medium hover:bg-gray-200"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ServicesPage() {
   const [services, setServices] = useState<ServiceRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [selected, setSelected] = useState<ServiceRequest | null>(null)
   const supabase = createClient()
 
   async function loadServices() {
@@ -50,6 +194,8 @@ export default function ServicesPage() {
 
   return (
     <div>
+      {selected && <ServiceDetailModal service={selected} onClose={() => setSelected(null)} />}
+
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Servicios</h2>
         <div className="flex gap-2">
@@ -81,7 +227,7 @@ export default function ServicesPage() {
                 <th className="text-left px-6 py-3 text-gray-600 font-medium">Conductor</th>
                 <th className="text-left px-6 py-3 text-gray-600 font-medium">Estado</th>
                 <th className="text-left px-6 py-3 text-gray-600 font-medium">Hora</th>
-                <th className="px-6 py-3"></th>
+                <th className="text-left px-6 py-3 text-gray-600 font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -106,15 +252,23 @@ export default function ServicesPage() {
                   <td className="px-6 py-4 text-gray-400 text-xs">
                     {new Date(s.requested_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    {['pending', 'assigned'].includes(s.status) && (
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
                       <button
-                        onClick={() => cancelService(s.id)}
-                        className="text-red-500 hover:text-red-700 text-xs"
+                        onClick={() => setSelected(s)}
+                        className="text-blue-500 hover:text-blue-700 text-xs font-medium"
                       >
-                        Cancelar
+                        Ver detalles
                       </button>
-                    )}
+                      {['pending', 'assigned'].includes(s.status) && (
+                        <button
+                          onClick={() => cancelService(s.id)}
+                          className="text-red-500 hover:text-red-700 text-xs"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
