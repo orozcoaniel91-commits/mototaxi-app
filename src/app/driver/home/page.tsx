@@ -16,6 +16,7 @@ export default function DriverHome() {
   const [locationError, setLocationError] = useState('')
   const [driverZoneId, setDriverZoneId] = useState<string | null>(null)
   const [driverMotoTypeId, setDriverMotoTypeId] = useState<number | null>(null)
+  const [driverLoaded, setDriverLoaded] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -52,6 +53,7 @@ export default function DriverHome() {
           .single()
         setDriverMotoTypeId(moto?.motorcycle_type_id ?? null)
       }
+      setDriverLoaded(true)
     }
     loadDriver()
   }, [driverId])
@@ -70,7 +72,7 @@ export default function DriverHome() {
 
   // Cargar servicios pendientes filtrados por zona y tipo de moto del conductor
   const loadPendingServices = useCallback(async () => {
-    if (!driverId) return
+    if (!driverId || !driverLoaded) return
 
     let query = supabase
       .from('service_requests')
@@ -95,7 +97,7 @@ export default function DriverHome() {
 
     const { data } = await query
     setPendingServices(data ?? [])
-  }, [driverId, driverZoneId, driverMotoTypeId])
+  }, [driverId, driverLoaded, driverZoneId, driverMotoTypeId])
 
   useEffect(() => {
     loadActiveService()
