@@ -79,14 +79,14 @@ export default function DriverHome() {
       .order('requested_at', { ascending: true })
       .limit(5)
 
-    // Solo mostrar servicios de la zona del conductor (o sin zona especificada)
+    // Si el conductor tiene zona asignada, solo ve servicios de ESA zona exacta
+    // Si no tiene zona, ve todos los servicios
     if (driverZoneId) {
-      query = query.or(`zone_id.is.null,zone_id.eq.${driverZoneId}`)
-    } else {
-      query = query.is('zone_id', null)
+      query = query.eq('zone_id', driverZoneId)
     }
 
-    // Solo mostrar servicios que piden el tipo de moto del conductor (o cualquiera)
+    // Si el conductor tiene tipo de moto, ve servicios de ese tipo + "cualquiera"
+    // Si no tiene tipo asignado, solo ve servicios sin tipo específico
     if (driverMotoTypeId !== null) {
       query = query.or(`requested_type_id.is.null,requested_type_id.eq.${driverMotoTypeId}`)
     } else {

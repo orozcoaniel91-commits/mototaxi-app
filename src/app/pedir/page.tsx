@@ -183,6 +183,7 @@ export default function PedirMoto() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Zona</label>
               <select
+                required
                 value={form.zone_id}
                 onChange={e => setForm({ ...form, zone_id: e.target.value })}
                 className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
