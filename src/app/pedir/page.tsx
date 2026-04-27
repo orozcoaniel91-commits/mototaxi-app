@@ -83,8 +83,7 @@ export default function PedirMoto() {
     return () => { supabase.removeChannel(channel) }
   }, [serviceId])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit() {
     setSubmitting(true)
 
     const { data } = await supabase.from('service_requests').insert({
@@ -95,6 +94,7 @@ export default function PedirMoto() {
       pickup_lat: location?.lat ?? 0,
       pickup_lng: location?.lng ?? 0,
       requested_type_id: form.requested_type_id ? parseInt(form.requested_type_id) : null,
+      zone_id: form.zone_id || null,
       fare: fare,
       status: 'pending',
     }).select().single()
@@ -124,7 +124,7 @@ export default function PedirMoto() {
         </div>
 
         {step === 'form' && (
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+          <form onSubmit={e => { e.preventDefault(); void handleSubmit() }} className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
             {locationStatus === 'loading' && (
               <div className="bg-blue-50 text-blue-600 text-sm rounded-xl px-4 py-2 flex items-center gap-2">
                 <span className="animate-spin">⏳</span> Obteniendo tu ubicación GPS...

@@ -14,6 +14,8 @@ export default function DriverHome() {
   const [showBreakdownForm, setShowBreakdownForm] = useState(false)
   const [breakdownDesc, setBreakdownDesc] = useState('')
   const [locationError, setLocationError] = useState('')
+  const [driverZoneId, setDriverZoneId] = useState<string | null>(null)
+  const [driverMotoTypeId, setDriverMotoTypeId] = useState<number | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -33,6 +35,23 @@ export default function DriverHome() {
       const { data } = await supabase.from('drivers').select('*').eq('id', driverId).single()
       if (!data) { router.push('/driver'); return }
       setDriver(data)
+      setDriverZoneId(data.zone_id)
+
+      const { data: assignment } = await supabase
+        .from('driver_motorcycle_assignments')
+        .select('motorcycle_id')
+        .eq('driver_id', driverId)
+        .eq('is_active', true)
+        .single()
+
+      if (assignment?.motorcycle_id) {
+        const { data: moto } = await supabase
+          .from('motorcycles')
+          .select('motorcycle_type_id')
+          .eq('id', assignment.motorcycle_id)
+          .single()
+        setDriverMotoTypeId(moto?.motorcycle_type_id ?? null)
+      }
     }
     loadDriver()
   }, [driverId])
@@ -49,17 +68,34 @@ export default function DriverHome() {
     setActiveService(data)
   }, [driverId])
 
-  // Cargar servicios pendientes cercanos
+  // Cargar servicios pendientes filtrados por zona y tipo de moto del conductor
   const loadPendingServices = useCallback(async () => {
     if (!driverId) return
-    const { data } = await supabase
+
+    let query = supabase
       .from('service_requests')
       .select('*, motorcycle_types(name)')
       .eq('status', 'pending')
       .order('requested_at', { ascending: true })
       .limit(5)
+
+    // Solo mostrar servicios de la zona del conductor (o sin zona especificada)
+    if (driverZoneId) {
+      query = query.or(`zone_id.is.null,zone_id.eq.${driverZoneId}`)
+    } else {
+      query = query.is('zone_id', null)
+    }
+
+    // Solo mostrar servicios que piden el tipo de moto del conductor (o cualquiera)
+    if (driverMotoTypeId !== null) {
+      query = query.or(`requested_type_id.is.null,requested_type_id.eq.${driverMotoTypeId}`)
+    } else {
+      query = query.is('requested_type_id', null)
+    }
+
+    const { data } = await query
     setPendingServices(data ?? [])
-  }, [driverId])
+  }, [driverId, driverZoneId, driverMotoTypeId])
 
   useEffect(() => {
     loadActiveService()

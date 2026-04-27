@@ -54,6 +54,7 @@ export interface ServiceRequest {
   destination_lng: number | null
   destination_address: string | null
   requested_type_id: number | null
+  zone_id: string | null
   status: ServiceStatus
   driver_id: string | null
   fare: number | null
