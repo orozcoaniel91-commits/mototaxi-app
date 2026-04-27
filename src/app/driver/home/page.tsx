@@ -81,14 +81,15 @@ export default function DriverHome() {
       .order('requested_at', { ascending: true })
       .limit(5)
 
-    // Si el conductor tiene zona asignada, solo ve servicios de ESA zona exacta
-    // Si no tiene zona, ve todos los servicios
+    // Filtro estricto por zona: siempre filtra, con o sin zona asignada
     if (driverZoneId) {
       query = query.eq('zone_id', driverZoneId)
+    } else {
+      // Sin zona configurada: no debe ver ningún servicio con zona
+      query = query.is('zone_id', null)
     }
 
-    // Si el conductor tiene tipo de moto, ve servicios de ese tipo + "cualquiera"
-    // Si no tiene tipo asignado, solo ve servicios sin tipo específico
+    // Filtro por tipo de moto: ve su tipo específico + "cualquiera" (null)
     if (driverMotoTypeId !== null) {
       query = query.or(`requested_type_id.is.null,requested_type_id.eq.${driverMotoTypeId}`)
     } else {
