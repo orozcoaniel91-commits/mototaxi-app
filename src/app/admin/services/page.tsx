@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ServiceRequest } from '@/lib/supabase/types'
+import { ConfirmModal } from '@/components/ConfirmModal'
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -168,6 +169,7 @@ export default function ServicesPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [selected, setSelected] = useState<ServiceRequest | null>(null)
+  const [cancelling, setCancelling] = useState<ServiceRequest | null>(null)
   const supabase = createClient()
 
   async function loadServices() {
@@ -186,15 +188,23 @@ export default function ServicesPage() {
 
   useEffect(() => { loadServices() }, [filter])
 
-  async function cancelService(id: string) {
-    if (!confirm('¿Cancelar este servicio?')) return
-    await supabase.from('service_requests').update({ status: 'cancelled' }).eq('id', id)
+  async function cancelService() {
+    if (!cancelling) return
+    await supabase.from('service_requests').update({ status: 'cancelled' }).eq('id', cancelling.id)
+    setCancelling(null)
     loadServices()
   }
 
   return (
     <div>
       {selected && <ServiceDetailModal service={selected} onClose={() => setSelected(null)} />}
+      {cancelling && (
+        <ConfirmModal
+          description={`¿Cancelar el servicio de "${cancelling.customer_name}"? Esta acción no se puede deshacer.`}
+          onConfirm={cancelService}
+          onClose={() => setCancelling(null)}
+        />
+      )}
 
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Servicios</h2>
@@ -266,10 +276,14 @@ export default function ServicesPage() {
                       </button>
                       {['pending', 'assigned'].includes(s.status) && (
                         <button
-                          onClick={() => cancelService(s.id)}
-                          className="text-red-500 hover:text-red-700 text-xs"
+                          title="Cancelar servicio"
+                          onClick={() => setCancelling(s)}
+                          className="text-red-400 hover:text-red-600"
                         >
-                          Cancelar
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                          </svg>
                         </button>
                       )}
                     </div>
