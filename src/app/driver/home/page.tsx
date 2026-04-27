@@ -74,30 +74,29 @@ export default function DriverHome() {
   const loadPendingServices = useCallback(async () => {
     if (!driverId || !driverLoaded) return
 
-    let query = supabase
+    const { data } = await supabase
       .from('service_requests')
       .select('*, motorcycle_types(name)')
       .eq('status', 'pending')
       .order('requested_at', { ascending: true })
-      .limit(5)
+      .limit(50)
 
-    // Filtro estricto por zona: siempre filtra, con o sin zona asignada
-    if (driverZoneId) {
-      query = query.eq('zone_id', driverZoneId)
-    } else {
-      // Sin zona configurada: no debe ver ningún servicio con zona
-      query = query.is('zone_id', null)
-    }
+    // Filtrado en cliente para evitar comportamiento OR global de PostgREST
+    const filtered = (data ?? []).filter(s => {
+      // Zona: si el conductor tiene zona, solo ve servicios de esa zona exacta
+      const zoneOk = driverZoneId
+        ? s.zone_id === driverZoneId
+        : s.zone_id === null
 
-    // Filtro por tipo de moto: ve su tipo específico + "cualquiera" (null)
-    if (driverMotoTypeId !== null) {
-      query = query.or(`requested_type_id.is.null,requested_type_id.eq.${driverMotoTypeId}`)
-    } else {
-      query = query.is('requested_type_id', null)
-    }
+      // Tipo de moto: ve su tipo + "cualquiera" (null); sin moto solo ve "cualquiera"
+      const typeOk = driverMotoTypeId !== null
+        ? (s.requested_type_id === null || s.requested_type_id === driverMotoTypeId)
+        : s.requested_type_id === null
 
-    const { data } = await query
-    setPendingServices(data ?? [])
+      return zoneOk && typeOk
+    })
+
+    setPendingServices(filtered.slice(0, 5))
   }, [driverId, driverLoaded, driverZoneId, driverMotoTypeId])
 
   useEffect(() => {
