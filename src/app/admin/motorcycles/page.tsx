@@ -69,16 +69,35 @@ function MotoDetailModal({ moto, onClose }: { moto: Motorcycle; onClose: () => v
   )
 }
 
-function MotoEditModal({ moto, types, onSave, onClose }: { moto: Motorcycle; types: MotorcycleType[]; onSave: () => void; onClose: () => void }) {
+function MotoEditModal({ moto, types, drivers, onSave, onClose }: {
+  moto: Motorcycle
+  types: MotorcycleType[]
+  drivers: { id: string; name: string }[]
+  onSave: () => void
+  onClose: () => void
+}) {
   const [form, setForm] = useState({
     plate: moto.plate,
     brand: moto.brand ?? '',
     model: moto.model ?? '',
     year: moto.year ? String(moto.year) : '',
     motorcycle_type_id: moto.motorcycle_type_id ? String(moto.motorcycle_type_id) : '',
+    driver_id: '',
   })
   const [saving, setSaving] = useState(false)
   const supabase = createClient()
+
+  useEffect(() => {
+    supabase
+      .from('driver_motorcycle_assignments')
+      .select('driver_id')
+      .eq('motorcycle_id', moto.id)
+      .eq('is_active', true)
+      .single()
+      .then(({ data }) => {
+        if (data) setForm(f => ({ ...f, driver_id: data.driver_id }))
+      })
+  }, [moto.id])
 
   async function handleSubmit() {
     setSaving(true)
@@ -89,6 +108,17 @@ function MotoEditModal({ moto, types, onSave, onClose }: { moto: Motorcycle; typ
       year: form.year ? parseInt(form.year) : null,
       motorcycle_type_id: form.motorcycle_type_id ? parseInt(form.motorcycle_type_id) : null,
     }).eq('id', moto.id)
+
+    // Update driver assignment
+    await supabase.from('driver_motorcycle_assignments').update({ is_active: false }).eq('motorcycle_id', moto.id)
+    if (form.driver_id) {
+      await supabase.from('driver_motorcycle_assignments').upsert({
+        driver_id: form.driver_id,
+        motorcycle_id: moto.id,
+        is_active: true,
+      }, { onConflict: 'driver_id,motorcycle_id' })
+    }
+
     setSaving(false)
     onSave()
   }
@@ -128,6 +158,13 @@ function MotoEditModal({ moto, types, onSave, onClose }: { moto: Motorcycle; typ
               </select>
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Conductor asignado</label>
+            <select value={form.driver_id} onChange={e => setForm({ ...form, driver_id: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm">
+              <option value="">Sin conductor</option>
+              {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={saving} className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
               {saving ? 'Guardando...' : 'Guardar cambios'}
@@ -157,7 +194,7 @@ export default function MotorcyclesPage() {
     const [{ data: motoData }, { data: typesData }, { data: driversData }] = await Promise.all([
       supabase.from('motorcycles').select('*, motorcycle_types(name)').order('plate'),
       supabase.from('motorcycle_types').select('*'),
-      supabase.from('drivers').select('id, name').eq('status', 'offline').order('name'),
+      supabase.from('drivers').select('id, name').order('name'),
     ])
     setMotorcycles(motoData ?? [])
     setTypes(typesData ?? [])
@@ -201,7 +238,7 @@ export default function MotorcyclesPage() {
   return (
     <div>
       {viewing && <MotoDetailModal moto={viewing} onClose={() => setViewing(null)} />}
-      {editing && <MotoEditModal moto={editing} types={types} onSave={() => { setEditing(null); loadData() }} onClose={() => setEditing(null)} />}
+      {editing && <MotoEditModal moto={editing} types={types} drivers={drivers} onSave={() => { setEditing(null); loadData() }} onClose={() => setEditing(null)} />}
       {deleting && (
         <ConfirmModal
           description={`¿Deseas eliminar la moto "${deleting.plate}"? Esta acción no se puede deshacer.`}
