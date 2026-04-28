@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 export default function AdminLogin() {
   const [username, setUsername] = useState('')
@@ -10,34 +9,28 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const supabase = createClient()
 
   async function handleLogin() {
     setLoading(true)
     setError('')
 
-    const { data, error } = await supabase
-      .from('admin_users')
-      .select('*')
-      .eq('username', username.trim())
-      .eq('password', password.trim())
-      .maybeSingle()
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username.trim(), password: password.trim() }),
+    })
 
-    if (error) {
-      setError('Error: ' + error.message)
-      setLoading(false)
-      return
-    }
+    const data = await res.json() as { id?: string; username?: string; role?: string; error?: string }
 
-    if (!data) {
+    if (!res.ok || !data.id) {
       setError('Usuario o contraseña incorrectos.')
       setLoading(false)
       return
     }
 
-    localStorage.setItem('admin_id', data.id)
-    localStorage.setItem('admin_username', data.username)
-    localStorage.setItem('admin_role', data.role)
+    localStorage.setItem('admin_id', data.id!)
+    localStorage.setItem('admin_username', data.username!)
+    localStorage.setItem('admin_role', data.role!)
     router.push('/admin')
   }
 
