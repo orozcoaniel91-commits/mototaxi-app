@@ -16,13 +16,20 @@ export default function AdminLogin() {
     setLoading(true)
     setError('')
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('admin_users')
       .select('*')
       .eq('username', username.trim())
+      .eq('password', password.trim())
       .maybeSingle()
 
-    if (!data || data.password !== password) {
+    if (error) {
+      setError('Error: ' + error.message)
+      setLoading(false)
+      return
+    }
+
+    if (!data) {
       setError('Usuario o contraseña incorrectos.')
       setLoading(false)
       return
