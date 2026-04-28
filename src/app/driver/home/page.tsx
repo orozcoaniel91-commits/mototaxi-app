@@ -407,7 +407,9 @@ export default function DriverHome() {
                       <p className="font-semibold">{plan.customer_name}</p>
                       <p className="text-xs text-gray-400">{plan.customer_phone}</p>
                     </div>
-                    <span className="text-blue-600 font-bold text-lg">{plan.scheduled_time.slice(0, 5)}</span>
+                    <span className="text-blue-600 font-bold text-lg">
+                      {(plan.schedule as Record<string,string> | null)?.[String(new Date().getDay())]?.slice(0,5) ?? plan.scheduled_time.slice(0,5)}
+                    </span>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-gray-400">Recogida</p>

@@ -9,6 +9,13 @@ const DAY_LABELS = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
 function fmtTime(t: string) { return t.slice(0, 5) }
 function todayStr() { return new Date().toISOString().split('T')[0] }
 
+function getPlanScheduleLabel(plan: RecurringService): string {
+  if (!plan.schedule) return fmtTime(plan.scheduled_time)
+  return plan.days_of_week
+    .map(d => `${'DLMXJVS'[d]} ${(plan.schedule as Record<string,string>)[String(d)]?.slice(0,5) ?? fmtTime(plan.scheduled_time)}`)
+    .join('  ')
+}
+
 type View = 'today' | 'all'
 
 export default function PlanesAdminPage() {
@@ -117,10 +124,12 @@ export default function PlanesAdminPage() {
                 <div className="flex gap-4 items-start">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-xl font-bold text-gray-800">{fmtTime(plan.scheduled_time)}</span>
-                      <span className="text-sm text-gray-400">
-                        {plan.days_of_week.map(d => DAY_LABELS[d]).join(' · ')}
-                      </span>
+                      <span className="text-base font-bold text-gray-800">{getPlanScheduleLabel(plan)}</span>
+                      {!plan.schedule && (
+                        <span className="text-sm text-gray-400">
+                          {plan.days_of_week.map(d => DAY_LABELS[d]).join(' · ')}
+                        </span>
+                      )}
                       {(plan.motorcycle_types as { name: string } | undefined) && (
                         <span className="bg-blue-50 text-blue-600 text-xs px-2 py-0.5 rounded-full">
                           {(plan.motorcycle_types as { name: string }).name}

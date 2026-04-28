@@ -79,6 +79,7 @@ export interface RecurringService {
   requested_type_id: number | null
   fare: number | null
   scheduled_time: string
+  schedule: Record<string, string> | null
   days_of_week: number[]
   driver_id: string | null
   is_active: boolean

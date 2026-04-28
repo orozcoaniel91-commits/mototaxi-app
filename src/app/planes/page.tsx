@@ -43,8 +43,15 @@ export default function PlanesPage() {
     days_of_week: [1, 2, 3, 4, 5] as number[],
     notes: '',
   })
+  const [customSchedule, setCustomSchedule] = useState(false)
+  const [perDayTimes, setPerDayTimes] = useState<Record<number, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const supabase = createClient()
+
+  function getPlanTime(plan: RecurringService, day?: number): string {
+    if (day !== undefined && plan.schedule?.[String(day)]) return plan.schedule[String(day)]
+    return fmtTime(plan.scheduled_time)
+  }
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -106,6 +113,10 @@ export default function PlanesPage() {
   async function createPlan() {
     setSubmitting(true)
     const fare = zones.find(z => z.id === form.zone_id)?.base_fare ?? null
+    // Build schedule: only save per-day times when customSchedule is on
+    const schedule = customSchedule && Object.keys(perDayTimes).length > 0
+      ? perDayTimes as Record<string, string>
+      : null
     await supabase.from('recurring_services').insert({
       customer_name: form.customer_name || 'Cliente',
       customer_phone: phone,
@@ -117,6 +128,7 @@ export default function PlanesPage() {
       requested_type_id: form.requested_type_id ? parseInt(form.requested_type_id) : null,
       fare,
       scheduled_time: form.scheduled_time,
+      schedule,
       days_of_week: form.days_of_week,
       notes: form.notes || null,
     })
@@ -125,12 +137,28 @@ export default function PlanesPage() {
   }
 
   function toggleDay(day: number) {
-    setForm(f => ({
-      ...f,
-      days_of_week: f.days_of_week.includes(day)
+    setForm(f => {
+      const next = f.days_of_week.includes(day)
         ? f.days_of_week.filter(d => d !== day)
-        : [...f.days_of_week, day].sort(),
-    }))
+        : [...f.days_of_week, day].sort()
+      // Keep perDayTimes in sync: remove time for deselected day
+      if (f.days_of_week.includes(day)) {
+        setPerDayTimes(prev => { const copy = { ...prev }; delete copy[day]; return copy })
+      } else {
+        setPerDayTimes(prev => ({ ...prev, [day]: f.scheduled_time }))
+      }
+      return { ...f, days_of_week: next }
+    })
+  }
+
+  function handleCustomScheduleToggle(on: boolean) {
+    setCustomSchedule(on)
+    if (on) {
+      // Pre-fill all selected days with the default time
+      const times: Record<number, string> = {}
+      form.days_of_week.forEach(d => { times[d] = form.scheduled_time })
+      setPerDayTimes(times)
+    }
   }
 
   if (step === 'phone') {
@@ -235,16 +263,6 @@ export default function PlanesPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hora de recogida</label>
-              <input
-                type="time"
-                required
-                value={form.scheduled_time}
-                onChange={e => setForm({ ...form, scheduled_time: e.target.value })}
-                className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Días de recogida</label>
               <div className="flex gap-1.5">
                 {DAY_LABELS.map((label, i) => (
@@ -262,6 +280,56 @@ export default function PlanesPage() {
                   </button>
                 ))}
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Hora de recogida <span className="text-gray-400 font-normal">(para todos los días)</span>
+              </label>
+              <input
+                type="time"
+                required
+                value={form.scheduled_time}
+                onChange={e => {
+                  setForm({ ...form, scheduled_time: e.target.value })
+                  if (!customSchedule) return
+                  // Update all per-day times to the new default
+                  const updated: Record<number, string> = {}
+                  form.days_of_week.forEach(d => { updated[d] = perDayTimes[d] ?? e.target.value })
+                  setPerDayTimes(updated)
+                }}
+                className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => handleCustomScheduleToggle(!customSchedule)}
+                className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                  customSchedule ? 'text-orange-600' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <span className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                  customSchedule ? 'bg-orange-500 border-orange-500' : 'border-gray-300'
+                }`}>
+                  {customSchedule && <span className="text-white text-xs leading-none">✓</span>}
+                </span>
+                Personalizar hora por día
+              </button>
+              {customSchedule && form.days_of_week.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {form.days_of_week.map(day => (
+                    <div key={day} className="flex items-center gap-3">
+                      <span className="w-24 text-sm text-gray-600 font-medium">{DAY_NAMES[day]}</span>
+                      <input
+                        type="time"
+                        value={perDayTimes[day] ?? form.scheduled_time}
+                        onChange={e => setPerDayTimes(prev => ({ ...prev, [day]: e.target.value }))}
+                        className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Notas (opcional)</label>
@@ -312,10 +380,23 @@ export default function PlanesPage() {
                 <div className="p-5">
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p className="text-2xl font-bold text-gray-800">{fmtTime(plan.scheduled_time)}</p>
-                      <p className="text-sm text-orange-500 font-medium mt-0.5">
-                        {plan.days_of_week.map(d => DAY_LABELS[d]).join(' · ')}
-                      </p>
+                      {plan.schedule ? (
+                        <div className="space-y-0.5">
+                          {plan.days_of_week.map(d => (
+                            <p key={d} className="text-sm font-semibold text-gray-800">
+                              <span className="text-orange-500 w-6 inline-block">{DAY_LABELS[d]}</span>
+                              {getPlanTime(plan, d)}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-2xl font-bold text-gray-800">{fmtTime(plan.scheduled_time)}</p>
+                          <p className="text-sm text-orange-500 font-medium mt-0.5">
+                            {plan.days_of_week.map(d => DAY_LABELS[d]).join(' · ')}
+                          </p>
+                        </>
+                      )}
                     </div>
                     {plan.fare && (
                       <span className="text-green-600 font-bold text-lg">${plan.fare.toFixed(2)}</span>
