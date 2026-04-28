@@ -69,18 +69,20 @@ function DriverDetailModal({ driver, onClose }: { driver: Driver; onClose: () =>
 }
 
 function DriverEditModal({ driver, zones, onSave, onClose }: { driver: Driver; zones: Zone[]; onSave: () => void; onClose: () => void }) {
-  const [form, setForm] = useState({ name: driver.name, phone: driver.phone, email: driver.email ?? '', zone_id: driver.zone_id ?? '' })
+  const [form, setForm] = useState({ name: driver.name, phone: driver.phone, email: driver.email ?? '', zone_id: driver.zone_id ?? '', password: '' })
   const [saving, setSaving] = useState(false)
   const supabase = createClient()
 
   async function handleSubmit() {
     setSaving(true)
-    await supabase.from('drivers').update({
+    const update: Record<string, string | null> = {
       name: form.name,
       phone: form.phone,
       email: form.email || null,
       zone_id: form.zone_id || null,
-    }).eq('id', driver.id)
+    }
+    if (form.password) update.password = form.password
+    await supabase.from('drivers').update(update).eq('id', driver.id)
     setSaving(false)
     onSave()
   }
@@ -112,6 +114,10 @@ function DriverEditModal({ driver, zones, onSave, onClose }: { driver: Driver; z
               {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
             </select>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña <span className="text-gray-400 font-normal">(dejar vacío para no cambiar)</span></label>
+            <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Nueva contraseña" />
+          </div>
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={saving} className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
               {saving ? 'Guardando...' : 'Guardar cambios'}
@@ -129,12 +135,13 @@ export default function DriversPage() {
   const [zones, setZones] = useState<Zone[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ name: '', phone: '', email: '', zone_id: '' })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', zone_id: '', password: '' })
   const [saving, setSaving] = useState(false)
   const [viewing, setViewing] = useState<Driver | null>(null)
   const [editing, setEditing] = useState<Driver | null>(null)
   const [deleting, setDeleting] = useState<Driver | null>(null)
   const supabase = createClient()
+
 
   async function loadData() {
     const [{ data: driversData }, { data: zonesData }] = await Promise.all([
@@ -155,8 +162,9 @@ export default function DriversPage() {
       phone: form.phone,
       email: form.email || null,
       zone_id: form.zone_id || null,
+      password: form.password || null,
     })
-    setForm({ name: '', phone: '', email: '', zone_id: '' })
+    setForm({ name: '', phone: '', email: '', zone_id: '', password: '' })
     setShowForm(false)
     setSaving(false)
     loadData()
@@ -208,6 +216,10 @@ export default function DriversPage() {
               <option value="">Sin zona asignada</option>
               {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+            <input required type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Contraseña de acceso" />
           </div>
           <div className="md:col-span-2 flex gap-3">
             <button type="submit" disabled={saving} className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 disabled:opacity-50 text-sm">

@@ -6,13 +6,13 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function DriverLogin() {
   const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleLogin() {
     setLoading(true)
     setError('')
 
@@ -23,7 +23,13 @@ export default function DriverLogin() {
       .single()
 
     if (!driver) {
-      setError('No se encontró un conductor con ese número de teléfono.')
+      setError('Teléfono o contraseña incorrectos.')
+      setLoading(false)
+      return
+    }
+
+    if (!driver.password || driver.password !== password) {
+      setError('Teléfono o contraseña incorrectos.')
       setLoading(false)
       return
     }
@@ -42,7 +48,7 @@ export default function DriverLogin() {
           <p className="text-gray-500 text-sm mt-1">Acceso para conductores</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={e => { e.preventDefault(); void handleLogin() }} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Número de teléfono
@@ -56,6 +62,19 @@ export default function DriverLogin() {
               placeholder="Ej: 0991234567"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Contraseña
+            </label>
+            <input
+              required
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              placeholder="Tu contraseña"
+            />
+          </div>
 
           {error && (
             <p className="text-red-500 text-sm text-center">{error}</p>
@@ -66,7 +85,7 @@ export default function DriverLogin() {
             disabled={loading}
             className="w-full bg-orange-500 text-white py-3 rounded-xl font-medium hover:bg-orange-600 disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Buscando...' : 'Entrar'}
+            {loading ? 'Verificando...' : 'Entrar'}
           </button>
         </form>
       </div>

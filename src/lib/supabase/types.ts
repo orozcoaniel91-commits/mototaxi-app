@@ -35,6 +35,7 @@ export interface Driver {
   phone: string
   email: string | null
   zone_id: string | null
+  password: string | null
   status: DriverStatus
   current_lat: number | null
   current_lng: number | null
