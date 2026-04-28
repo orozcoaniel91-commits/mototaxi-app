@@ -106,6 +106,15 @@ export default function PedirMoto() {
     setSubmitting(false)
   }
 
+  async function cancelService() {
+    if (!serviceId) return
+    await supabase.from('service_requests').update({ status: 'cancelled' }).eq('id', serviceId)
+    if (service?.driver_id) {
+      await supabase.from('drivers').update({ status: 'available' }).eq('id', service.driver_id)
+    }
+    reset()
+  }
+
   function reset() {
     setStep('form')
     setServiceId(null)
@@ -248,6 +257,12 @@ export default function PedirMoto() {
               <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
               <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
             </div>
+            <button
+              onClick={() => void cancelService()}
+              className="mt-8 w-full border border-red-200 text-red-500 py-3 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors"
+            >
+              Cancelar pedido
+            </button>
           </div>
         )}
 
@@ -259,7 +274,13 @@ export default function PedirMoto() {
             {service.fare && (
               <p className="text-2xl font-bold text-orange-500 mb-2">${service.fare.toFixed(2)}</p>
             )}
-            <p className="text-xs text-gray-400">Espera en tu punto de recogida</p>
+            <p className="text-xs text-gray-400 mb-6">Espera en tu punto de recogida</p>
+            <button
+              onClick={() => void cancelService()}
+              className="w-full border border-red-200 text-red-500 py-3 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors"
+            >
+              Cancelar pedido
+            </button>
           </div>
         )}
 
