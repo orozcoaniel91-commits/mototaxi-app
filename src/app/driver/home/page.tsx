@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Driver, ServiceRequest, RecurringService } from '@/lib/supabase/types'
+import { Driver, ServiceRequest, RecurringService, DriverNotification } from '@/lib/supabase/types'
 
 type ActiveService = ServiceRequest & { drivers?: Driver }
 
@@ -21,6 +21,8 @@ export default function DriverHome() {
   const supabase = createClient()
 
   const [recurringToday, setRecurringToday] = useState<RecurringService[]>([])
+  const [notifications, setNotifications] = useState<DriverNotification[]>([])
+  const [showNotifications, setShowNotifications] = useState(false)
   const [driverId, setDriverId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -244,6 +246,43 @@ export default function DriverHome() {
     })
   }
 
+  const loadNotifications = useCallback(async () => {
+    if (!driverId) return
+    const { data } = await supabase
+      .from('driver_notifications')
+      .select('*')
+      .eq('driver_id', driverId)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    setNotifications(data ?? [])
+  }, [driverId])
+
+  useEffect(() => { loadNotifications() }, [loadNotifications])
+
+  useEffect(() => {
+    if (!driverId) return
+    const channel = supabase
+      .channel('driver_notifications_' + driverId)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'driver_notifications',
+        filter: `driver_id=eq.${driverId}`,
+      }, () => { loadNotifications() })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [driverId, loadNotifications])
+
+  async function markAllRead() {
+    if (!driverId) return
+    await supabase
+      .from('driver_notifications')
+      .update({ is_read: true })
+      .eq('driver_id', driverId)
+      .eq('is_read', false)
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+  }
+
   function logout() {
     localStorage.removeItem('driver_id')
     localStorage.removeItem('driver_name')
@@ -278,9 +317,50 @@ export default function DriverHome() {
             <span className={`w-2 h-2 rounded-full ${status.dot} animate-pulse`}></span>
             {status.label}
           </span>
+          <button
+            onClick={() => { setShowNotifications(v => !v); if (!showNotifications) markAllRead() }}
+            className="relative text-gray-400 hover:text-white p-1"
+            title="Notificaciones"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {notifications.some(n => !n.is_read) && (
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-orange-500 rounded-full" />
+            )}
+          </button>
           <button onClick={logout} className="text-gray-400 text-xs hover:text-white">Salir</button>
         </div>
       </div>
+
+      {showNotifications && (
+        <div className="bg-gray-800 text-white max-h-72 overflow-y-auto">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700">
+            <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide">Notificaciones</p>
+            <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-white text-lg leading-none">✕</button>
+          </div>
+          {notifications.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">Sin notificaciones</p>
+          ) : (
+            <div className="divide-y divide-gray-700">
+              {notifications.map(n => (
+                <div key={n.id} className={`px-4 py-3 ${n.is_read ? 'opacity-60' : ''}`}>
+                  <div className="flex items-start gap-2">
+                    {!n.is_read && <span className="mt-1.5 w-2 h-2 rounded-full bg-orange-400 shrink-0" />}
+                    <div className={!n.is_read ? '' : 'pl-4'}>
+                      <p className="text-sm font-medium">{n.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{n.body}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(n.created_at).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="p-4 space-y-4 max-w-md mx-auto">
         {locationError && (

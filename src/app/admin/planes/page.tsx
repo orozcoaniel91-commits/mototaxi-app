@@ -59,6 +59,19 @@ export default function PlanesAdminPage() {
       .from('recurring_services')
       .update({ driver_id: driverId || null })
       .eq('id', planId)
+
+    if (driverId) {
+      const plan = plans.find(p => p.id === planId)
+      if (plan) {
+        const days = plan.days_of_week.map(d => 'DLMXJVS'[d]).join('')
+        await supabase.from('driver_notifications').insert({
+          driver_id: driverId,
+          title: 'Plan fijo asignado',
+          body: `${plan.customer_name} · ${getPlanScheduleLabel(plan)} (${days}) · ${plan.pickup_address}`,
+        })
+      }
+    }
+
     setSaving(null)
     loadData()
   }

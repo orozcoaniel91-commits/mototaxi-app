@@ -90,6 +90,15 @@ export interface RecurringService {
   drivers?: Driver
 }
 
+export interface DriverNotification {
+  id: string
+  driver_id: string
+  title: string
+  body: string
+  is_read: boolean
+  created_at: string
+}
+
 export interface RecurringServiceException {
   id: string
   recurring_service_id: string
