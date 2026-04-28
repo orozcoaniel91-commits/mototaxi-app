@@ -193,6 +193,30 @@ export default function DriverHome() {
     loadPendingServices()
   }
 
+  async function acceptRecurringRoute(plan: RecurringService) {
+    if (!driverId) return
+    const { data } = await supabase.from('service_requests').insert({
+      customer_name: plan.customer_name,
+      customer_phone: plan.customer_phone,
+      pickup_address: plan.pickup_address,
+      pickup_lat: plan.pickup_lat,
+      pickup_lng: plan.pickup_lng,
+      destination_address: plan.destination_address,
+      zone_id: plan.zone_id,
+      requested_type_id: plan.requested_type_id,
+      fare: plan.fare,
+      status: 'assigned',
+      driver_id: driverId,
+      accepted_at: new Date().toISOString(),
+    }).select().single()
+    if (data) {
+      await supabase.from('drivers').update({ status: 'busy' }).eq('id', driverId)
+      setDriver(prev => prev ? { ...prev, status: 'busy' } : prev)
+      setActiveService(data)
+      setRecurringToday(prev => prev.filter(p => p.id !== plan.id))
+    }
+  }
+
   async function startService() {
     if (!activeService) return
     await supabase.from('service_requests').update({
@@ -503,6 +527,14 @@ export default function DriverHome() {
                   </div>
                   {plan.fare && (
                     <p className="mt-2 font-bold text-green-600">${plan.fare.toFixed(2)}</p>
+                  )}
+                  {!activeService && (
+                    <button
+                      onClick={() => acceptRecurringRoute(plan)}
+                      className="mt-3 w-full bg-blue-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-600"
+                    >
+                      Aceptar ruta fija
+                    </button>
                   )}
                 </div>
               ))}
