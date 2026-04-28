@@ -20,7 +20,7 @@ export default function AdminLogin() {
       .from('admin_users')
       .select('*')
       .eq('username', username.trim())
-      .single()
+      .maybeSingle()
 
     if (!data || data.password !== password) {
       setError('Usuario o contraseña incorrectos.')
