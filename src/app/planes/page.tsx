@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { RecurringService, RecurringServiceException, MotorcycleType, Zone } from '@/lib/supabase/types'
 
@@ -169,6 +170,7 @@ export default function PlanesPage() {
             <div className="text-5xl mb-3">🔄</div>
             <h1 className="text-3xl font-bold text-gray-800">Mis planes fijos</h1>
             <p className="text-gray-500 mt-1">Gestiona tus recogidas programadas</p>
+            <Link href="/" className="inline-block mt-3 text-xs text-gray-400 hover:text-gray-600">← Inicio</Link>
           </div>
           <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
             <div>
