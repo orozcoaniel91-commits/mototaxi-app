@@ -11,6 +11,7 @@ const navItems = [
   { href: '/admin/zones', label: 'Zonas', icon: '📍' },
   { href: '/admin/services', label: 'Servicios', icon: '📋' },
   { href: '/admin/breakdowns', label: 'Averías', icon: '🔧' },
+  { href: '/admin/planes', label: 'Planes fijos', icon: '🔄' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

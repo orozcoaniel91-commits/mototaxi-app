@@ -67,6 +67,36 @@ export interface ServiceRequest {
   drivers?: Driver
 }
 
+export interface RecurringService {
+  id: string
+  customer_name: string
+  customer_phone: string
+  pickup_address: string
+  pickup_lat: number
+  pickup_lng: number
+  destination_address: string | null
+  zone_id: string | null
+  requested_type_id: number | null
+  fare: number | null
+  scheduled_time: string
+  days_of_week: number[]
+  driver_id: string | null
+  is_active: boolean
+  notes: string | null
+  created_at: string
+  zones?: Zone
+  motorcycle_types?: MotorcycleType
+  drivers?: Driver
+}
+
+export interface RecurringServiceException {
+  id: string
+  recurring_service_id: string
+  exception_date: string
+  reason: string | null
+  created_at: string
+}
+
 export interface BreakdownReport {
   id: string
   driver_id: string

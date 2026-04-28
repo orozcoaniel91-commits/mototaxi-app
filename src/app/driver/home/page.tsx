@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Driver, ServiceRequest } from '@/lib/supabase/types'
+import { Driver, ServiceRequest, RecurringService } from '@/lib/supabase/types'
 
 type ActiveService = ServiceRequest & { drivers?: Driver }
 
@@ -20,6 +20,7 @@ export default function DriverHome() {
   const router = useRouter()
   const supabase = createClient()
 
+  const [recurringToday, setRecurringToday] = useState<RecurringService[]>([])
   const [driverId, setDriverId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -99,10 +100,35 @@ export default function DriverHome() {
     setPendingServices(filtered.slice(0, 5))
   }, [driverId, driverLoaded, driverZoneId, driverMotoTypeId])
 
+  const loadRecurringToday = useCallback(async () => {
+    if (!driverId) return
+    const todayDow = new Date().getDay()
+    const todayDate = new Date().toISOString().split('T')[0]
+
+    const { data: plans } = await supabase
+      .from('recurring_services')
+      .select('*, zones(name), motorcycle_types(name)')
+      .eq('driver_id', driverId)
+      .eq('is_active', true)
+      .contains('days_of_week', [todayDow])
+
+    if (!plans || plans.length === 0) { setRecurringToday([]); return }
+
+    const { data: excs } = await supabase
+      .from('recurring_service_exceptions')
+      .select('recurring_service_id')
+      .in('recurring_service_id', plans.map(p => p.id))
+      .eq('exception_date', todayDate)
+
+    const cancelledIds = new Set((excs ?? []).map(e => e.recurring_service_id))
+    setRecurringToday(plans.filter(p => !cancelledIds.has(p.id)))
+  }, [driverId])
+
   useEffect(() => {
     loadActiveService()
     loadPendingServices()
-  }, [loadActiveService, loadPendingServices])
+    loadRecurringToday()
+  }, [loadActiveService, loadPendingServices, loadRecurringToday])
 
   // Suscripción realtime a servicios pendientes
   useEffect(() => {
@@ -365,6 +391,40 @@ export default function DriverHome() {
           <div className="bg-white rounded-2xl shadow-sm p-8 text-center text-gray-400">
             <p className="text-3xl mb-2">🛵</p>
             <p className="text-sm">Esperando servicios...</p>
+          </div>
+        )}
+
+        {/* Rutas fijas hoy */}
+        {recurringToday.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-gray-600 mb-2">Rutas fijas hoy</p>
+            <div className="space-y-3">
+              {recurringToday.map(plan => (
+                <div key={plan.id} className="bg-white rounded-2xl shadow-sm p-4 border-l-4 border-blue-400">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="text-xs font-medium text-blue-500 uppercase mb-1">Ruta fija</p>
+                      <p className="font-semibold">{plan.customer_name}</p>
+                      <p className="text-xs text-gray-400">{plan.customer_phone}</p>
+                    </div>
+                    <span className="text-blue-600 font-bold text-lg">{plan.scheduled_time.slice(0, 5)}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-400">Recogida</p>
+                    <p className="text-sm">{plan.pickup_address}</p>
+                    {plan.destination_address && (
+                      <>
+                        <p className="text-xs text-gray-400">Destino</p>
+                        <p className="text-sm">{plan.destination_address}</p>
+                      </>
+                    )}
+                  </div>
+                  {plan.fare && (
+                    <p className="mt-2 font-bold text-green-600">${plan.fare.toFixed(2)}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
