@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { ConfirmModal } from '@/components/ConfirmModal'
 
 interface AdminUser {
@@ -38,13 +37,14 @@ const PencilIcon = () => (
 function EditModal({ user, onSave, onClose }: { user: AdminUser; onSave: () => void; onClose: () => void }) {
   const [form, setForm] = useState({ username: user.username, password: '', role: user.role })
   const [saving, setSaving] = useState(false)
-  const supabase = createClient()
 
   async function handleSubmit() {
     setSaving(true)
-    const update: Record<string, string> = { username: form.username, role: form.role }
-    if (form.password) update.password = form.password
-    await supabase.from('admin_users').update(update).eq('id', user.id)
+    await fetch(`/api/admin/users/${user.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
     setSaving(false)
     onSave()
   }
@@ -101,10 +101,10 @@ export default function UsuariosPage() {
   const [editing, setEditing] = useState<AdminUser | null>(null)
   const [deleting, setDeleting] = useState<AdminUser | null>(null)
   const currentId = typeof window !== 'undefined' ? localStorage.getItem('admin_id') : null
-  const supabase = createClient()
 
   async function loadUsers() {
-    const { data } = await supabase.from('admin_users').select('id, username, role, created_at').order('created_at')
+    const res = await fetch('/api/admin/users')
+    const data = await res.json() as AdminUser[]
     setUsers(data ?? [])
     setLoading(false)
   }
@@ -113,7 +113,11 @@ export default function UsuariosPage() {
 
   async function handleCreate() {
     setSaving(true)
-    await supabase.from('admin_users').insert({ username: form.username, password: form.password, role: form.role })
+    await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
     setForm({ username: '', password: '', role: 'admin' })
     setShowForm(false)
     setSaving(false)
@@ -122,7 +126,7 @@ export default function UsuariosPage() {
 
   async function handleDelete() {
     if (!deleting) return
-    await supabase.from('admin_users').delete().eq('id', deleting.id)
+    await fetch(`/api/admin/users/${deleting.id}`, { method: 'DELETE' })
     setDeleting(null)
     loadUsers()
   }
