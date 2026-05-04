@@ -13,6 +13,7 @@ const navItems = [
   { href: '/admin/services', label: 'Servicios', icon: '📋' },
   { href: '/admin/breakdowns', label: 'Averías', icon: '🔧' },
   { href: '/admin/planes', label: 'Planes fijos', icon: '🔄' },
+  { href: '/admin/clientes', label: 'Clientes', icon: '👥' },
   { href: '/admin/usuarios', label: 'Usuarios', icon: '🔑' },
 ]
 
