@@ -204,7 +204,7 @@ export default function PedirMoto() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">🏍️</div>
-          <h1 className="text-3xl font-bold text-gray-800">MotoTaxi</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Zippi</h1>
           <p className="text-gray-500 mt-1">Pide tu moto rápido y seguro</p>
           <Link href="/" className="inline-block mt-3 text-xs text-gray-400 hover:text-gray-600">← Inicio</Link>
         </div>

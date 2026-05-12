@@ -8,8 +8,9 @@ export default function Home() {
         {/* Logo */}
         <div className="text-center mb-10">
           <div className="text-6xl mb-3">🏍️</div>
-          <h1 className="text-4xl font-bold text-gray-800">MotoTaxi</h1>
-          <p className="text-gray-500 mt-2">¿Qué deseas hacer?</p>
+          <h1 className="text-4xl font-bold text-gray-800">Zippi</h1>
+          <p className="text-orange-500 font-medium text-sm tracking-wide mt-1">Movilidad rápida, al instante</p>
+          <p className="text-gray-400 text-sm mt-1">¿Qué deseas hacer?</p>
         </div>
 
         {/* Opciones principales */}

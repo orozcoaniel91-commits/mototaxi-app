@@ -39,7 +39,7 @@ export default function AdminLogin() {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
         <div className="text-center mb-8">
           <div className="text-4xl mb-3">🏍️</div>
-          <h1 className="text-2xl font-bold text-gray-800">MotoTaxi</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Zippi</h1>
           <p className="text-gray-500 text-sm mt-1">Acceso al panel de administración</p>
         </div>
 

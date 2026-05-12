@@ -57,7 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="flex h-screen bg-gray-100">
       <aside className="w-64 bg-gray-900 text-white flex flex-col">
         <div className="p-6 border-b border-gray-700">
-          <h1 className="text-xl font-bold">MotoTaxi</h1>
+          <h1 className="text-xl font-bold">Zippi</h1>
           <p className="text-gray-400 text-sm mt-1">Panel de administración</p>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
