@@ -172,7 +172,16 @@ export default function DriversPage() {
 
   async function handleDelete() {
     if (!deleting) return
-    await supabase.from('drivers').delete().eq('id', deleting.id)
+    const id = deleting.id
+    // Limpiar registros relacionados antes de eliminar
+    await Promise.all([
+      supabase.from('driver_notifications').delete().eq('driver_id', id),
+      supabase.from('driver_motorcycle_assignments').delete().eq('driver_id', id),
+      supabase.from('service_requests').update({ driver_id: null }).eq('driver_id', id),
+      supabase.from('recurring_services').update({ driver_id: null }).eq('driver_id', id),
+      supabase.from('breakdown_reports').update({ driver_id: null }).eq('driver_id', id),
+    ])
+    await supabase.from('drivers').delete().eq('id', id)
     setDeleting(null)
     loadData()
   }
